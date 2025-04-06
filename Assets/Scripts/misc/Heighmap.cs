@@ -1,12 +1,11 @@
 using UnityEngine;
 using UnityEngine.UI;
-using AlgorithmsHelper;
 
 public class Heighmap : MonoBehaviour
 {
     public RawImage heightmapImage;
     
-    void Start()
+    void Awake()
     {
         heightmapImage.enabled = false;
     }
@@ -19,7 +18,7 @@ public class Heighmap : MonoBehaviour
         }
     }
 
-    public void SetHeightmap(float[,] heightmap)
+    public void SetHeightmapImage(float[,] heightmap)
     {
         Algorithms.NormalizeValues(heightmap);
 

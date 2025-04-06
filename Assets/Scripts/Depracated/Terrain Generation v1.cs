@@ -1,7 +1,6 @@
 /*using UnityEngine;
-using Generator;
 
-public class TerrainGeneration : MonoBehaviour
+public class TerrainGenerationV1 : MonoBehaviour
 {
     [SerializeField] private Noise selectedNoise;
     public enum Noise { WhiteNoise, PerlinNoise }
