@@ -1,11 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-
-/// <summary>
-/// Implementation of Worley (Cellular) noise based on Steven Worley's paper
-/// "A Cellular Texture Basis Function".
-/// </summary>
 public static class Worley
 {
     // Constants for the hash function
@@ -23,9 +18,9 @@ public static class Worley
     /// <param name="scale">Scale factor for the noise</param>
     /// <param name="functions">Array containing weights for F1, F2, F3, etc. functions</param>
     /// <returns>2D array containing the heightmap values</returns>
-    public static float[,] GenerateHeightmap(int width, int height, float maxHeight = 10, float scale = 1.0f, float cellDensity = 3.0f, int seed = 0, float[] functions = null)
+    public static float[,] Noise(int width, int height, float maxHeight, int seed, float scale, float cellDensity,  float[] functions = null)
     {
-        HelperMethods.SetRandomizerSeed(seed);
+        MethodHelper.SetRandomizerSeed(seed);
 
         // Default to just F1 if no functions are specified
         if (functions == null)
@@ -58,7 +53,7 @@ public static class Worley
             }
         }
 
-        Algorithms.NormalizeValues(heightmap, maxHeight);
+        MethodHelper.NormalizeValues(heightmap, maxHeight);
 
         return heightmap;
     }
@@ -124,7 +119,7 @@ public static class Worley
             }
         }
 
-        Algorithms.NormalizeValues(heightmap, maxHeight);
+        MethodHelper.NormalizeValues(heightmap, maxHeight);
 
         return heightmap;
     }
@@ -159,7 +154,7 @@ public static class Worley
                 int cellSeed = Hash(curX, curY, seed);
                 
                 // Initialize random generator with this cell's seed
-                HelperMethods.SetRandomizerSeed(cellSeed);
+                MethodHelper.SetRandomizerSeed(cellSeed);
                 
                 // Use a more deterministic way to calculate number of points based on cellDensity and seed
                 float randomValue = PseudoRandomFloat(cellSeed);

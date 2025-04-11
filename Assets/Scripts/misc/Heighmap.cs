@@ -20,7 +20,7 @@ public class Heighmap : MonoBehaviour
 
     public void SetHeightmapImage(float[,] heightmap)
     {
-        Algorithms.NormalizeValues(heightmap);
+        MethodHelper.NormalizeValues(heightmap);
 
         int width = heightmap.GetLength(0), height = heightmap.GetLength(1);
 

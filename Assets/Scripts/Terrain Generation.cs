@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public enum Noise { WhiteNoise, PerlinNoise, SimplexNoise, SimplexNoiseV2, WaveletNoise, WorleyNoise, DiamondSquareNoise }
+public enum Noise { White, Perlin, Simplex, Wavelet, Worley, DiamondSquare }
 public enum Render { Voxel, Triangulation, MarchingCubes, DelaunayTriangulation }
 
 public class TerrainGeneration : MonoBehaviour
@@ -8,24 +8,34 @@ public class TerrainGeneration : MonoBehaviour
     [Header("Noise Algorithm")]
     [SerializeField] private Noise noiseType;
 
-    [ShowIfEnum("noiseType", Noise.PerlinNoise /*>3*/, Noise.SimplexNoise /*>3*/, Noise.WorleyNoise), Min(1)]
+    [ShowIfEnum("noiseType", Noise.Worley), Min(1)]
     public float scale = 3;
 
-    [ShowIfEnum("noiseType", Noise.SimplexNoise), Min(1)]
-    public float influenceRadius = 1.2f;
+    [ShowIfEnum("noiseType", Noise.Perlin, Noise.Simplex), Min(2.5f)]
+    public float Scale = 3;
 
-    [ShowIfEnum("noiseType", Noise.WaveletNoise), Min(1)]
+    [ShowIfEnum("noiseType", Noise.Wavelet), Min(1)]
     public int tileSize = 32;
 
-    [ShowIfEnum("noiseType", Noise.WorleyNoise), Min(0.1f)]
+    [ShowIfEnum("noiseType", Noise.Worley), Min(0.1f)]
     public float cellDensity = 3;
 
-    [ShowIfEnum("noiseType", Noise.DiamondSquareNoise), Range(0.1f, 1)]
+    [ShowIfEnum("noiseType", Noise.DiamondSquare), Range(0.5f, 1)]
     public float roughness = 0.5f;
 
-    [ShowIfEnum("noiseType", Noise.WhiteNoise, Noise.SimplexNoise, Noise.WorleyNoise, Noise.DiamondSquareNoise), Min(0)]
-    public int seed = 0;
-    
+    [ShowIfEnum("noiseType", Noise.DiamondSquare)]
+    public bool forceResize;
+
+    [ShowIfEnum("noiseType", Noise.White, Noise.Simplex, Noise.Wavelet, Noise.Worley, Noise.DiamondSquare), Min(0)]
+    public int seed;
+
+    [ShowIfEnum("noiseType", Noise.Simplex), Range(0.2f, 1)]
+    public float falloffRadius;
+
+    [ShowIfEnum("noiseType", Noise.Simplex), Min(4)]
+    public int gradientCount;
+
+
     [Header("Terrain Rendering")]
     [SerializeField] private Render renderType;
 
@@ -35,6 +45,7 @@ public class TerrainGeneration : MonoBehaviour
     [ShowIfEnum("renderType", Render.Voxel)]
     public bool fixedToGrid = true;
     
+
     [Header("Terrain Settings")]
     [Min(1)]
     public int terrainDimensions = 15;
@@ -55,7 +66,6 @@ public class TerrainGeneration : MonoBehaviour
     
     void Update()
     {
-        // Check for R key press to regenerate terrain
         if (Input.GetKeyDown(KeyCode.R))
         {
             RegenerateTerrain();
@@ -65,16 +75,12 @@ public class TerrainGeneration : MonoBehaviour
     [ContextMenu("Regenerate Terrain")]
     void RegenerateTerrain()
     {
-        // Remove any previously generated terrain
         RemoveExistingTerrain();
         
-        // Generate new heightmap
         float[,] heightmap = GenerateHeightmap();
         
-        // Render terrain with the new heightmap
         RenderTerrain(heightmap);
         
-        // Update the heightmap visualization
         heightmapScript.SetHeightmapImage(heightmap);
     }
     
@@ -87,14 +93,13 @@ public class TerrainGeneration : MonoBehaviour
     {
         return noiseType switch
         {
-            Noise.WhiteNoise => White.Noise(terrainDimensions, terrainDimensions, maxTerrainHeight, seed),
-            Noise.PerlinNoise => Perlin.Noise(terrainDimensions, terrainDimensions, maxTerrainHeight, scale, seed),
-            Noise.SimplexNoise => Simplex.Noise(terrainDimensions, terrainDimensions, maxTerrainHeight, scale, influenceRadius, seed),
-            Noise.SimplexNoiseV2 => SimplexNoise2D.GenerateHeightmap(terrainDimensions, terrainDimensions, scale, maxTerrainHeight, new Vector2(64, 64)),
-            Noise.WaveletNoise => Wavelet.GenerateHeightmap(terrainDimensions, tileSize),
-            Noise.WorleyNoise => Worley.GenerateHeightmap(terrainDimensions, terrainDimensions, maxTerrainHeight, scale, cellDensity, seed),
-            //Noise.WorleyNoise => Worley.GenerateFractalHeightmap(terrainDimensions, terrainDimensions, maxTerrainHeight, cellDensity, scale),
-            Noise.DiamondSquareNoise => DiamondSquare.GenerateHeightmap(terrainDimensions, maxTerrainHeight, roughness, seed),
+            Noise.White => White.Noise(terrainDimensions, terrainDimensions, maxTerrainHeight, seed),
+            Noise.Perlin => Perlin.Noise(terrainDimensions, terrainDimensions, maxTerrainHeight, seed, Scale),
+            Noise.Simplex => Simplex.Noise(terrainDimensions, terrainDimensions, maxTerrainHeight, seed, Scale, falloffRadius, gradientCount),
+            Noise.Wavelet => Wavelet.Noise(terrainDimensions, maxTerrainHeight, seed, tileSize),
+            Noise.Worley => Worley.Noise(terrainDimensions, terrainDimensions, maxTerrainHeight, seed, scale, cellDensity),
+            //Noise.Worley => Worley.GenerateFractalHeightmap(terrainDimensions, terrainDimensions, maxTerrainHeight, cellDensity, scale),
+            Noise.DiamondSquare => DiamondSquare.Noise(terrainDimensions, maxTerrainHeight, seed, roughness, forceResize),
             _ => throw new System.ArgumentException($"Unsupported noise type: {noiseType}")
         };
     }
@@ -104,7 +109,7 @@ public class TerrainGeneration : MonoBehaviour
         switch (renderType)
         {
             case Render.Voxel:
-                Voxel.GenerateTerrain(heightmap, texture, fixedToGrid);
+                Voxel.GenerateTerrain(heightmap, texture, cubeSize, fixedToGrid);
                 break;
             case Render.Triangulation:
                 Triangulation.CreateVoxelObject(heightmap, texture);

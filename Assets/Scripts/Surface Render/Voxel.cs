@@ -4,9 +4,10 @@ public static class Voxel
 {
     static GameObject cube = Resources.Load<GameObject>("Cube");
 
-    public static void GenerateTerrain(float[,] heights, Material material = null, bool fixedToGrid = false)
+    public static void GenerateTerrain(float[,] heights, Material material = null, float cubeSize = 1f, bool fixedToGrid = false)
     {
         GameObject terrainParent = new GameObject("Terrain");
+        terrainParent.transform.localScale = new Vector3(cubeSize, cubeSize, cubeSize);
 
         if (material != null)
         {
@@ -27,7 +28,7 @@ public static class Voxel
                 else { height = heights[x, z]; }
 
                 for (float y = height; y > 0; y--)
-                    Object.Instantiate(cube, new Vector3(x, y, z), Quaternion.identity, terrainParent.transform);
+                    Object.Instantiate(cube, new Vector3(x * cubeSize, y * cubeSize, z * cubeSize), Quaternion.identity, terrainParent.transform);
             }
         }
     }

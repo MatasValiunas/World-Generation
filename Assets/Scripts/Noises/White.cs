@@ -1,36 +1,47 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-
 public static class White
 {
-    public static float[,] Noise(int width, int length, int maxHeight, int seed, int minHeight = 1)
+    public static float[,] Noise(int width, int length, int maxHeight, int seed)
     {
-        float[,] grid = new float[width, length];
-        List<float> list = new();
-
         int size = width * length;
         int cycles = Mathf.CeilToInt((float)size / maxHeight);
-        
+
+        List<float> heightList = new();
         for (int i = 0; i < cycles; i++)
         {
-            for (int value = minHeight; value <= maxHeight; value++)
+            for (int height = 1; height <= maxHeight; height++)
             {
-                list.Add(value);
+                heightList.Add(height);
             }
         }
 
-        Algorithms.ShuffleList(list, seed);  
+        ShuffleList(heightList, seed);  
         
-        // Convert the shuffled list into a 2D array
+        float[,] heightmap = new float[width, length];
         for (int x = 0, i = 0; x < width; x++)
         {
             for (int z = 0; z < length; z++)
             {
-                grid[x, z] = list[i++];
+                heightmap[x, z] = heightList[i++];
             }
         }
 
-        return grid;
+        return heightmap;
+    }
+
+    // Fisher-Yates shuffle algorithm
+    static void ShuffleList(List<float> list, int seed)
+    {
+        MethodHelper.SetRandomizerSeed(seed);
+
+        int n = list.Count;
+        while (n > 1)
+        {
+            n--;
+            int k = Random.Range(0, n + 1);
+            (list[k], list[n]) = (list[n], list[k]);
+        }
     }
 }

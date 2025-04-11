@@ -1,173 +1,127 @@
 using UnityEngine;
-
-
 public static class Simplex
 {
-    private static Vector2[] gradientTable;
+    const float SKEW_FACTOR = 0.5f;
+    const int HASH_PRIME = 289;
+    const int HASH_MULT_1 = 51;
+    const int HASH_MULT_2 = 34;
+    const int HASH_OFFSET_1 = 2;
+    const int HASH_OFFSET_2 = 10;
+    const float DEFAULT_FALLOFF_POWER = 4;
 
-    public struct Point 
+    public static float[,] Noise(int width, int length, float maxHeight, int seed, float scale, float falloffRadius, int gradientCount)
     {
-        public Vector2 coordinates;
-        public Vector2 gradient;
+        Vector2[] gradients = GenerateGradients(gradientCount, seed);
 
-        public Point (float x, float y)
-        {
-            coordinates = new Vector2(x, y);
-            gradient = gradientTable[Algorithms.Hash(coordinates) % gradientTable.Length];
-        }
-    }
-
-    struct Triangle
-    {
-        public Point[] points;
-
-        public Triangle(Point a, Point b, Point c)
-        {
-            points = new Point[3]{ a, b, c };
-        }
-
-        public bool ContainsPoint(Vector2 p)
-        {
-            Vector2 v0 = points[2].coordinates - points[0].coordinates;
-            Vector2 v1 = points[1].coordinates - points[0].coordinates;
-            Vector2 v2 = p - points[0].coordinates;
-
-            float dot00 = Vector2.Dot(v0, v0);
-            float dot01 = Vector2.Dot(v0, v1);
-            float dot02 = Vector2.Dot(v0, v2);
-            float dot11 = Vector2.Dot(v1, v1);
-            float dot12 = Vector2.Dot(v1, v2);
-
-            float denom = dot00 * dot11 - dot01 * dot01;
-            float invDenom = 1f / denom;
-
-            float u = (dot11 * dot02 - dot01 * dot12) * invDenom;
-            float v = (dot00 * dot12 - dot01 * dot02) * invDenom;
-
-            const float epsilon = 1e-5f;    // Small tolerance to account for floating-point inaccuracies when point is on the edge of the triangle
-            return (u >= -epsilon) && (v >= -epsilon) && (u + v <= 1f + epsilon);
-        }
-    }
-
-    
-    public static float[,] Noise(int width, int length, float maxHeight, float scale, float influenceRadius, int seed)
-    {
-        gradientTable = GenerateGradientTable(32, seed);
-
-        float[,] grid = new float[width, length];
-        Triangle[,] simplexGrid = SimplexGridGenerator(width, length);
-
-        for (int x = 0; x < width; x++)
-        {   
-            for (int y = 0; y < length; y++)
-            {
-                float fx = x / scale;
-                float fy = y / scale;
-
-                Vector2 point = new Vector2(fx, fy);
-
-                Triangle[] triangles = new Triangle[3] 
-                { 
-                    simplexGrid[Mathf.FloorToInt(fx), Mathf.FloorToInt(fy) * 2],
-                    simplexGrid[Mathf.FloorToInt(fx), Mathf.FloorToInt(fy) * 2 + 1],
-                    simplexGrid[Mathf.FloorToInt(fx), Mathf.FloorToInt(fy) * 2 + 2],
-                };
-                
-                Triangle triangle = triangles[GetTriangleIndexContainingPoint(point, triangles)];
-
-                Vector2[] cornerVectors = new Vector2[3]
-                {
-                    point - triangle.points[0].coordinates,
-                    point - triangle.points[1].coordinates,
-                    point - triangle.points[2].coordinates,
-                };
-                
-                float[] falloffs = new float[3]
-                {
-                    Mathf.Max(0f, influenceRadius - Vector2.Dot(cornerVectors[0], cornerVectors[0])),
-                    Mathf.Max(0f, influenceRadius - Vector2.Dot(cornerVectors[1], cornerVectors[1])),
-                    Mathf.Max(0f, influenceRadius - Vector2.Dot(cornerVectors[2], cornerVectors[2])),
-                };
-
-                // 11
-                float[] ramps = new float[3]
-                {
-                    Vector2.Dot(triangle.points[0].gradient, cornerVectors[0]),
-                    Vector2.Dot(triangle.points[1].gradient, cornerVectors[1]),
-                    Vector2.Dot(triangle.points[2].gradient, cornerVectors[2]),
-                };
-                
-                // 12
-                float[] contributions = new float[3]
-                {
-                    ramps[0] * Mathf.Pow(falloffs[0], 4), // using wi⁴ falloff like in the paper
-                    ramps[1] * Mathf.Pow(falloffs[1], 4),
-                    ramps[2] * Mathf.Pow(falloffs[2], 4),
-                };
-
-                // 13
-                float noiseValue = contributions[0] + contributions[1] + contributions[2];
-                grid[x, y] = noiseValue;
-            }
-        }
-
-        Algorithms.NormalizeValues(grid, (float)maxHeight);
-
-        return grid;
-    }
-
-    private static Triangle[,] SimplexGridGenerator(int width, int length)
-    {
-        Triangle[,] grid = new Triangle[width, length * 2 + 1];
-
+        float[,] heightmap = new float[width, length];
         for (int x = 0; x < width; x++)
         {
-            if (x % 2 == 0)
+            for (int z = 0; z < length; z++)
             {
-                grid[x, 0] = new Triangle(new Point(x + 1f, -0.5f), new Point(x, 0f), new Point(x + 1f, 0.5f));
-                for (int y = 0; y < length; y++)
-                {
-                    grid[x, y * 2 + 1] = new Triangle(new Point(x, y), new Point(x + 1f, y + 0.5f), new Point(x, y + 1f));
-                    grid[x, y * 2 + 2] = new Triangle(new Point(x + 1f, y + 0.5f), new Point(x, y + 1f), new Point(x + 1f, y + 1.5f));
-                }
-            }
-            else
-            {
-                grid[x, 0] = new Triangle(new Point(x, -0.5f), new Point(x + 1f, 0f), new Point(x, 0.5f));
-                for (int y = 0; y < length; y++)
-                {
-                    grid[x, y * 2 + 1] = new Triangle(new Point(x + 1f, y), new Point(x, y + 0.5f), new Point(x + 1f, y + 1f));
-                    grid[x, y * 2 + 2] = new Triangle(new Point(x, y + 0.5f), new Point(x + 1f, y + 1f), new Point(x, y + 1.5f));
-                }
+                Vector2 point = new Vector2(x / scale, z / scale);
+                heightmap[x, z] = PointNoise(point, gradients, falloffRadius);
             }
         }
-        
-        return grid;
-    }
-    
-    private static int GetTriangleIndexContainingPoint(Vector2 point, Triangle[] triangles)
-    {
-        for (int i = 0; i < triangles.Length; i++)
-        {
-            if (triangles[i].ContainsPoint(point))
-                return i; 
-        }
 
-        throw new System.ArgumentException($"No triangle contains the point {point}");
-    }
-    
-    private static Vector2[] GenerateGradientTable(int size, int seed)
-    {
-        Vector2[] table = new Vector2[size];
+        MethodHelper.NormalizeValues(heightmap, maxHeight);
 
-        HelperMethods.SetRandomizerSeed(seed);
-        
-        for (int i = 0; i < size; i++)
+        return heightmap;
+    }
+
+    public static float PointNoise(Vector2 point, Vector2[] gradients, float falloffRadius)
+    {
+        // 2. Transform input point to find simplex "base" i0
+        Vector2 uv = new Vector2(point.x + point.y * SKEW_FACTOR, point.y);
+        Vector2 gridCoord1 = new Vector2(Mathf.Floor(uv.x), Mathf.Floor(uv.y));
+        Vector2 gridRelativePos = uv - gridCoord1;
+
+        // Determine simplex corner offsets
+        bool isFirstTriangle = gridRelativePos.y < gridRelativePos.x;
+        Vector2 simplexOffset = isFirstTriangle ? new Vector2(1, 0) : new Vector2(0, 1);
+
+        Vector2 gridCoord2 = gridCoord1 + simplexOffset;
+        Vector2 gridCoord3 = gridCoord1 + Vector2.one;
+
+        // 3. Convert simplex grid coords back to unskewed space
+        Vector2 worldPos1 = new Vector2(gridCoord1.x - gridCoord1.y * SKEW_FACTOR, gridCoord1.y);
+        Vector2 worldPos2 = new Vector2(worldPos1.x + simplexOffset.x - simplexOffset.y * SKEW_FACTOR, worldPos1.y + simplexOffset.y);
+        Vector2 worldPos3 = new Vector2(worldPos1.x + SKEW_FACTOR, worldPos1.y + 1);
+
+        // 4. Compute distances to corners
+        Vector2 cornerDist1 = point - worldPos1;
+        Vector2 cornerDist2 = point - worldPos2;
+        Vector2 cornerDist3 = point - worldPos3;
+
+        // 5. Hash
+        Vector3 gridX = new Vector3(gridCoord1.x, gridCoord2.x, gridCoord3.x);
+        Vector3 gridZ = new Vector3(gridCoord1.y, gridCoord2.y, gridCoord3.y);
+
+        Vector3 hash = Mod(gridX, HASH_PRIME);
+        hash = Mod(Vector3.Scale(hash * HASH_MULT_1 + new Vector3(HASH_OFFSET_1, HASH_OFFSET_1, HASH_OFFSET_1), hash) + gridZ, HASH_PRIME);
+        hash = Mod(Vector3.Scale(hash * HASH_MULT_2 + new Vector3(HASH_OFFSET_2, HASH_OFFSET_2, HASH_OFFSET_2), hash), HASH_PRIME);
+
+        // 6. Map hash values to gradients
+        Vector3 h = hash / HASH_PRIME;  // Normalize hash to [0,1]
+
+        // Select gradients based on hash
+        int idx1 = Mathf.FloorToInt(h.x * gradients.Length) % gradients.Length;
+        int idx2 = Mathf.FloorToInt(h.y * gradients.Length) % gradients.Length;
+        int idx3 = Mathf.FloorToInt(h.z * gradients.Length) % gradients.Length;
+
+        Vector2 gradient1 = gradients[idx1];
+        Vector2 gradient2 = gradients[idx2];
+        Vector2 gradient3 = gradients[idx3];
+
+        // 7. Radial falloff
+        Vector3 radialFalloff = new Vector3(
+            Mathf.Max(falloffRadius - Vector2.Dot(cornerDist1, cornerDist1), 0),
+            Mathf.Max(falloffRadius - Vector2.Dot(cornerDist2, cornerDist2), 0),
+            Mathf.Max(falloffRadius - Vector2.Dot(cornerDist3, cornerDist3), 0)
+        );
+
+        radialFalloff.x = Mathf.Pow(radialFalloff.x, DEFAULT_FALLOFF_POWER);
+        radialFalloff.y = Mathf.Pow(radialFalloff.y, DEFAULT_FALLOFF_POWER);
+        radialFalloff.z = Mathf.Pow(radialFalloff.z, DEFAULT_FALLOFF_POWER);
+
+        // 8. Linear ramp along gradients
+        Vector3 LinearRamps = new Vector3(
+            Vector2.Dot(gradient1, cornerDist1),
+            Vector2.Dot(gradient2, cornerDist2),
+            Vector2.Dot(gradient3, cornerDist3)
+        );
+
+        // 9. Multiply the ramp values at x with their corresponding falloff
+        float contribution1 = radialFalloff.x * LinearRamps.x;
+        float contribution2 = radialFalloff.y * LinearRamps.y;
+        float contribution3 = radialFalloff.z * LinearRamps.z;
+
+        // 10. Weighted sum
+        float n = contribution1 + contribution2 + contribution3;
+
+        return n;
+    }
+
+    static Vector2[] GenerateGradients(int count, int seed)
+    {
+        MethodHelper.SetRandomizerSeed(seed);
+
+        Vector2[] gradients = new Vector2[count];
+
+        for (int i = 0; i < count; i++)
         {
             float angle = Random.Range(0f, 2f * Mathf.PI);
-            table[i] = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+            gradients[i] = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
         }
 
-        return table;
+        return gradients;
+    }
+
+    static Vector3 Mod(Vector3 v, float m)
+    {
+        return new Vector3(
+            v.x - m * Mathf.Floor(v.x / m),
+            v.y - m * Mathf.Floor(v.y / m),
+            v.z - m * Mathf.Floor(v.z / m)
+        );
     }
 }
