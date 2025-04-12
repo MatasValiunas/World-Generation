@@ -3,7 +3,7 @@ using UnityEngine;
 public static class Wavelet
 {
     const int FILTER_RADIUS = 16;             // The radius of the filter used for downsampling operations
-    const float startingFrequency = -6.0f;    // Base frequency scale (negative = very low frequency/large features)
+    const float startingFrequency = -6;    // Base frequency scale (negative = very low frequency/large features)
     const int firstBand = -3;                 // Octave to start sampling from
     static readonly float[] pCoeffs = new float[4] { 0.25f, 0.75f, 0.75f, 0.25f };  // Coefficients for the Quadratic B-spline filter used in upsampling
     static readonly float[] bandWeights = { 1.0f, 0.5f, 0.25f };    // Weights for each frequency band (lower frequencies have more influence)
@@ -17,21 +17,12 @@ public static class Wavelet
     static float[] noiseValues;    // Cached noise values for the generated noise tile
     static int tileSize;           // Size of the generated noise tile
 
-    /// <summary>
-    /// Generates a 2D heightmap using wavelet noise.
-    /// </summary>
-    /// <param name="mapSize">The width and height of the heightmap to generate</param>
-    /// <param name="maxHeight">The maximum height value in the resulting heightmap</param>
-    /// <param name="seed">Random seed for the noise generation</param>
+
     /// <param name="tileDimension">Size of the noise tile (higher = more detail but more computation)</param>
-    /// <returns>A 2D array representing the heightmap</returns>
     public static float[,] Noise(int mapSize, int maxHeight, int seed, int tileDimension)
     {
         // Generate the noise tile that will be sampled to create the heightmap
         InitializeWaveletTile(tileDimension, seed);
-
-        // Configure the frequency bands for the noise
-        
 
         float[,] heightmap = new float[mapSize, mapSize];
 
@@ -60,23 +51,22 @@ public static class Wavelet
     /// Initializes the wavelet noise tile used for sampling.
     /// Creates a tileable, band-limited noise pattern using wavelet decomposition.
     /// </summary>
-    /// <param name="size">Size of the noise tile (must be even)</param>
-    /// <param name="seed">Random seed for reproducible noise</param>
-    static void InitializeWaveletTile(int size, int seed = 0)
+    static void InitializeWaveletTile(int size, int seed)
     {
         // Ensure tile size is even (required for wavelet operations)
         size += size % 2;
 
         int dataSize = size * size;
-        float[] downsampled = new float[dataSize]; // Temporary buffer for downsampling
-        float[] upsampled = new float[dataSize];   // Temporary buffer for upsampling
-        float[] noise = new float[dataSize];       // The noise data being processed
+        float[] noise = new float[dataSize]; 
 
         // Step 1: Start with white noise as the base
         float[,] whiteNoise = White.Noise(size, size, 100, seed);
         MethodHelper.NormalizeValues(whiteNoise, 1, -1);
 
         // Convert 2D array to 1D array for faster processing
+        float[] downsampled = new float[dataSize]; // Temporary buffer for downsampling
+        float[] upsampled = new float[dataSize];   // Temporary buffer for upsampling
+
         for (int i = 0, ix = 0; ix < size; ix++)
             for (int iz = 0; iz < size; iz++)
                 noise[i++] = whiteNoise[ix, iz];
@@ -108,8 +98,12 @@ public static class Wavelet
         int offset = (size / 2) | 1; // Ensures the offset is odd
 
         for (int i = 0, ix = 0; ix < size; ix++)
+        {
             for (int iz = 0; iz < size; iz++)
+            {
                 downsampled[i++] = noise[WrapCoordinate(ix + offset, size) + WrapCoordinate(iz + offset, size) * size];
+            }
+        }
 
         for (int i = 0; i < dataSize; i++)
         {
@@ -182,10 +176,7 @@ public static class Wavelet
     /// This creates noise with characteristics of natural phenomena like terrain.
     /// </summary>
     /// <param name="samplePoint">The 2D point to sample</param>
-    /// <param name="startingFrequency">The base frequency scale</param>
-    /// <param name="firstBand">The first frequency band to include</param>
     /// <param name="bandWeights">Weights for each frequency band</param>
-    /// <returns>The combined noise value</returns>
     static float CombineFrequencyBands(float[] samplePoint)
     {
         float[] scaledPoint = new float[2];

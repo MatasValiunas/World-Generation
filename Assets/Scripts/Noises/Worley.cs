@@ -3,119 +3,35 @@ using UnityEngine;
 
 public static class Worley
 {
-    // Constants for the hash function
     private const int PRIME_X = 501125321;
     private const int PRIME_Y = 1136930381;
     private const int PRIME_SEED = 198491317; // Added a prime for seed mixing
 
-
-    /// <summary>
-    /// Generates a 2D heightmap of Worley noise.
-    /// </summary>
-    /// <param name="width">Width of the heightmap</param>
-    /// <param name="height">Height of the heightmap</param>
-    /// <param name="cellDensity">Average number of feature points per cell (recommended 1-4)</param>
-    /// <param name="scale">Scale factor for the noise</param>
-    /// <param name="functions">Array containing weights for F1, F2, F3, etc. functions</param>
-    /// <returns>2D array containing the heightmap values</returns>
-    public static float[,] Noise(int width, int height, float maxHeight, int seed, float scale, float cellDensity,  float[] functions = null)
+    public static float[,] Noise(int width, int length, float maxHeight, int seed, float scale, float cellDensity, float[] function)
     {
-        MethodHelper.SetRandomizerSeed(seed);
+        MethodHelper.RandomizeSeed(ref seed);
 
-        // Default to just F1 if no functions are specified
-        if (functions == null)
-        {
-            functions = new float[] { 1.0f };
-        }
-
-        float[,] heightmap = new float[width, height];
+        float[,] heightmap = new float[width, length];
 
         // Generate the raw noise values
-        for (int y = 0; y < height; y++)
+        for (int z = 0; z < length; z++)
         {
             for (int x = 0; x < width; x++)
             {
                 // Scale the coordinates
-                float nx = x * scale / width;
-                float ny = y * scale / height;
+                float nx = x / scale;
+                float nz = z / scale;
 
-                // Get the F1, F2, F3, etc. values
-                float[] values = CalculateFunctions(nx, ny, functions.Length, cellDensity, seed);
+                float[] values = CalculateFunctions(nx, nz, function.Length, cellDensity, seed);
 
                 // Combine the functions with their weights
                 float value = 0;
-                for (int i = 0; i < functions.Length; i++)
+                for (int i = 0; i < function.Length; i++)
                 {
-                    value += values[i] * functions[i];
+                    value += values[i] * function[i];
                 }
 
-                heightmap[x, y] = value;
-            }
-        }
-
-        MethodHelper.NormalizeValues(heightmap, maxHeight);
-
-        return heightmap;
-    }
-
-    /// <summary>
-    /// Generates a fractal version of the Worley noise.
-    /// </summary>
-    /// <param name="width">Width of the heightmap</param>
-    /// <param name="height">Height of the heightmap</param>
-    /// <param name="cellDensity">Average number of feature points per cell</param>
-    /// <param name="scale">Base scale factor for the noise</param>
-    /// <param name="octaves">Number of octaves to generate</param>
-    /// <param name="persistence">How much each octave contributes to the final result</param>
-    /// <param name="functions">Array containing weights for F1, F2, F3, etc. functions</param>
-    /// <returns>2D array containing the heightmap values</returns>
-    public static float[,] GenerateFractalHeightmap(int width, int height, float maxHeight = 10, float cellDensity = 3.0f, float scale = 1.0f, int octaves = 5, float persistence = 0.5f, int seed = 0, float[] functions = null)
-    {        
-        // Default to just F1 if no functions are specified
-        if (functions == null)
-        {
-            functions = new float[] { 1.0f };
-        }
-
-        float[,] heightmap = new float[width, height];
-
-        for (int y = 0; y < height; y++)
-        {
-            for (int x = 0; x < width; x++)
-            {
-                float amplitude = 1.0f;
-                float frequency = 1.0f;
-                float value = 0;
-                float totalAmplitude = 0;
-
-                // Add successive octaves
-                for (int o = 0; o < octaves; o++)
-                {
-                    float nx = x * scale * frequency / width;
-                    float ny = y * scale * frequency / height;
-
-                    // Generate a different seed for each octave based on the base seed
-                    int octaveSeed = Hash(seed, o, 0);
-                    
-                    // Get the F1, F2, F3, etc. values for this octave
-                    float[] values = CalculateFunctions(nx, ny, functions.Length, cellDensity, octaveSeed);
-
-                    // Combine the functions with their weights
-                    float octaveValue = 0;
-                    for (int i = 0; i < functions.Length; i++)
-                    {
-                        octaveValue += values[i] * functions[i];
-                    }
-
-                    value += octaveValue * amplitude;
-                    totalAmplitude += amplitude;
-                    amplitude *= persistence;
-                    frequency *= 2;
-                }
-
-                // Normalize by total amplitude
-                value /= totalAmplitude;
-                heightmap[x, y] = value;
+                heightmap[x, z] = value;
             }
         }
 
@@ -127,17 +43,12 @@ public static class Worley
     /// <summary>
     /// Calculates the F1, F2, ..., Fn values for a given point.
     /// </summary>
-    /// <param name="x">X coordinate</param>
-    /// <param name="y">Y coordinate</param>
-    /// <param name="count">Number of F values to calculate (F1, F2, etc.)</param>
-    /// <param name="cellDensity">Average number of feature points per cell</param>
-    /// <param name="seed">Seed value for randomization</param>
     /// <returns>Array containing the requested F values</returns>
-    private static float[] CalculateFunctions(float x, float y, int count, float cellDensity, int seed)
+    private static float[] CalculateFunctions(float x, float z, int count, float cellDensity, int seed)
     {
         // Find the unit cube containing the point
         int xi = Mathf.FloorToInt(x);
-        int yi = Mathf.FloorToInt(y);
+        int zi = Mathf.FloorToInt(z);
 
         // Structure to store distances and compare them
         List<PointDistance> distances = new List<PointDistance>();
@@ -148,13 +59,10 @@ public static class Worley
             for (int dy = -1; dy <= 1; dy++)
             {
                 int curX = xi + dx;
-                int curY = yi + dy;
+                int curZ = zi + dy;
 
                 // Generate a deterministic random seed for this cube based on position and global seed
-                int cellSeed = Hash(curX, curY, seed);
-                
-                // Initialize random generator with this cell's seed
-                MethodHelper.SetRandomizerSeed(cellSeed);
+                int cellSeed = Hash(curX, curZ, seed);
                 
                 // Use a more deterministic way to calculate number of points based on cellDensity and seed
                 float randomValue = PseudoRandomFloat(cellSeed);
@@ -164,14 +72,14 @@ public static class Worley
                 for (int i = 0; i < numPoints; i++)
                 {
                     // Generate consistent point positions based on the cell seed and point index
-                    int pointSeed = Hash(cellSeed, i, 0);
+                    int pointSeed = Hash(cellSeed, i);
                     float px = curX + PseudoRandomFloat(pointSeed);
-                    float py = curY + PseudoRandomFloat(Hash(pointSeed, 1, 0));
+                    float pz = curZ + PseudoRandomFloat(Hash(pointSeed, 1));
 
                     // Calculate Euclidean distance squared
                     float dx2 = x - px;
-                    float dy2 = y - py;
-                    float distSquared = dx2 * dx2 + dy2 * dy2;
+                    float dz2 = z - pz;
+                    float distSquared = dx2 * dx2 + dz2 * dz2;
 
                     // Add to our list of distances
                     distances.Add(new PointDistance { DistanceSquared = distSquared, PointID = pointSeed });
@@ -193,7 +101,7 @@ public static class Worley
     }
 
     /// <summary>
-    /// Simple structure to store distance information for sorting
+    /// Structure to store distance information for sorting
     /// </summary>
     private struct PointDistance
     {
@@ -204,7 +112,7 @@ public static class Worley
     /// <summary>
     /// Hashes three integers to get a deterministic random seed
     /// </summary>
-    private static int Hash(int x, int y, int seed)
+    private static int Hash(int x, int y, int seed = 0)
     {
         int hash = seed * PRIME_SEED;
         hash ^= PRIME_X * x;
@@ -234,41 +142,33 @@ public static class Worley
         return result;
     }
 
-    /// <summary>
-    /// Utility method to create linear combinations of F1, F2, etc. for common patterns
-    /// </summary>
-    /// <param name="pattern">Preset pattern to use</param>
-    /// <returns>Array with weights for the F functions</returns>
-    public static float[] GetPresetPattern(WorleyPattern pattern)
+
+    public static float[] GetPattern(Pattern pattern)
     {
         switch (pattern)
         {
-            case WorleyPattern.F1:
+            case Pattern.F1:
                 return new float[] { 1.0f };
-            case WorleyPattern.F2:
+            case Pattern.F2:
                 return new float[] { 0, 1.0f };
-            case WorleyPattern.F2MinusF1:
+            case Pattern.F2MinusF1:
                 return new float[] { -1.0f, 1.0f };
-            case WorleyPattern.F1PlusF2:
+            case Pattern.F1PlusF2:
                 return new float[] { 1.0f, 1.0f };
-            case WorleyPattern.F1TimesF2:
-                // This requires special handling in the generator
+            case Pattern.F1TimesF2:
                 return new float[] { 1.0f, 0.5f };
-            case WorleyPattern.F3MinusF2:
+            case Pattern.F3MinusF2:
                 return new float[] { 0, -1.0f, 1.0f };
-            case WorleyPattern.Craters:
+            case Pattern.Craters:
                 return new float[] { 1.0f, -0.5f };
-            case WorleyPattern.Veins:
+            case Pattern.Veins:
                 return new float[] { -1.0f, 1.0f };
             default:
                 return new float[] { 1.0f };
         }
     }
 
-    /// <summary>
-    /// Common Worley noise patterns
-    /// </summary>
-    public enum WorleyPattern
+    public enum Pattern
     {
         F1,
         F2,

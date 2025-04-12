@@ -438,18 +438,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6ab3996c90c17404c9bf19bea3d0aca4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  noiseType: 3
-  scale: 1
-  Scale: 10
+  noiseType: 4
+  scale: 30
   tileSize: 29
   cellDensity: 30
   roughness: 0.6
   forceResize: 0
-  seed: 50
+  seed: 0
   falloffRadius: 1
-  gradientCount: 4
+  gradientCount: 26
+  function: 0
   renderType: 1
-  cubeSize: 0.6
+  terrainScale: 1
   fixedToGrid: 0
   terrainDimensions: 100
   maxTerrainHeight: 10

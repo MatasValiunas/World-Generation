@@ -13,6 +13,15 @@ public static class MethodHelper
         Random.InitState(seed);
     }
 
+    public static void RandomizeSeed(ref int seed)
+    {
+        if (seed == 0)
+        {
+            seed = System.Environment.TickCount;     // random seed
+            Debug.Log($"Seed: {seed}");
+        }
+    }
+
     public static void NormalizeValues(float[,] array, float max = 1, float min = 0)
     {
         int width = array.GetLength(0), length = array.GetLength(1);
