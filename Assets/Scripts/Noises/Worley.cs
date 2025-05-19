@@ -7,7 +7,7 @@ public static class Worley
     private const int PRIME_Y = 1136930381;
     private const int PRIME_SEED = 198491317; // Added a prime for seed mixing
 
-    public static float[,] Noise(int width, int length, float maxHeight, int seed, float scale, float cellDensity, float[] function)
+    public static float[,] Noise(int width, int length, float maxHeight, int seed, float scale, float cellDensity, bool multiplication, float[] functions)
     {
         MethodHelper.RandomizeSeed(ref seed);
 
@@ -22,13 +22,25 @@ public static class Worley
                 float nx = x / scale;
                 float nz = z / scale;
 
-                float[] values = CalculateFunctions(nx, nz, function.Length, cellDensity, seed);
+                float[] values = CalculateFunctions(nx, nz, functions.Length, cellDensity, seed);
 
                 // Combine the functions with their weights
                 float value = 0;
-                for (int i = 0; i < function.Length; i++)
+
+                if (multiplication)
                 {
-                    value += values[i] * function[i];
+                    value = values[0] * functions[0];
+                    for (int i = 1; i < functions.Length; i++)
+                    {
+                        value *= values[i] * functions[i];
+                    }
+                }
+                else
+                {
+                    for (int i = 0; i < functions.Length; i++)
+                    {
+                        value += values[i] * functions[i];
+                    }
                 }
 
                 heightmap[x, z] = value;
@@ -66,7 +78,7 @@ public static class Worley
                 
                 // Use a more deterministic way to calculate number of points based on cellDensity and seed
                 float randomValue = PseudoRandomFloat(cellSeed);
-                int numPoints = Mathf.Max(1, Mathf.Min(9, Mathf.FloorToInt(randomValue * cellDensity + 1)));
+                int numPoints = 1;//Mathf.Max(1, Mathf.Min(9, Mathf.FloorToInt(randomValue * cellDensity + 1)));
 
                 // Generate each feature point and calculate distance
                 for (int i = 0; i < numPoints; i++)
@@ -151,6 +163,9 @@ public static class Worley
                 return new float[] { 1.0f };
             case Pattern.F2:
                 return new float[] { 0, 1.0f };
+            case Pattern.F3:
+                return new float[] { 0, 0, 1.0f };
+                
             case Pattern.F2MinusF1:
                 return new float[] { -1.0f, 1.0f };
             case Pattern.F1PlusF2:
@@ -161,8 +176,6 @@ public static class Worley
                 return new float[] { 0, -1.0f, 1.0f };
             case Pattern.Craters:
                 return new float[] { 1.0f, -0.5f };
-            case Pattern.Veins:
-                return new float[] { -1.0f, 1.0f };
             default:
                 return new float[] { 1.0f };
         }
@@ -170,13 +183,14 @@ public static class Worley
 
     public enum Pattern
     {
+        Manual,
         F1,
         F2,
+        F3,
         F2MinusF1,
         F1PlusF2,
         F1TimesF2,
         F3MinusF2,
         Craters,
-        Veins
     }
 }

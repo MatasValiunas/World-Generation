@@ -2,7 +2,7 @@ using UnityEngine;
 
 public static class Voxel
 {
-    static GameObject cube = Resources.Load<GameObject>("Cube");
+    static readonly GameObject cube = Resources.Load<GameObject>("Cube");
 
     public static void GenerateTerrain(float[,] heightmap, float scale = 1, Material material = null, bool fixedToGrid = false)
     {
@@ -16,8 +16,7 @@ public static class Voxel
             cube.GetComponent<MeshRenderer>().material = material;
         }
 
-        int width = heightmap.GetLength(0);
-        int length = heightmap.GetLength(1);
+        int width = heightmap.GetLength(0), length = heightmap.GetLength(1);
 
         for (int x = 0; x < width; x++)
         {

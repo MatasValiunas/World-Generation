@@ -19,7 +19,7 @@ public static class Wavelet
 
 
     /// <param name="tileDimension">Size of the noise tile (higher = more detail but more computation)</param>
-    public static float[,] Noise(int mapSize, int maxHeight, int seed, int tileDimension)
+    public static float[,] Noise(int mapSize, float maxHeight, int seed, int tileDimension)
     {
         // Generate the noise tile that will be sampled to create the heightmap
         InitializeWaveletTile(tileDimension, seed);

@@ -179,7 +179,7 @@ Camera:
     width: 1
     height: 1
   near clip plane: 0.3
-  far clip plane: 1000
+  far clip plane: 10000
   field of view: 60
   orthographic: 0
   orthographic size: 5
@@ -269,10 +269,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 58951c99b9927b549958c871c3649554, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  moveSpeed: 10
+  moveSpeed: 30
   lookSpeed: 2
   verticalSpeed: 5
-  sprintMultiplier: 2
+  sprintMultiplier: 10
 --- !u!1 &410087039
 GameObject:
   m_ObjectHideFlags: 0
@@ -438,23 +438,42 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6ab3996c90c17404c9bf19bea3d0aca4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  noiseType: 4
-  scale: 30
+  noiseType: 2
+  scale: 70
+  Scale: 3
   tileSize: 29
-  cellDensity: 30
-  roughness: 0.6
+  cellDensity: 1
+  roughness: 0.55
   forceResize: 0
+  variation: 1
+  influence1: 0.42
+  mixing: 1
+  noise2: 1
+  influence2: 1
+  scale2: 0.1
+  noise3: 0
+  influence3: 0
+  scale3: 0.1
   seed: 0
-  falloffRadius: 1
+  falloffRadius: 0.8
   gradientCount: 26
-  function: 0
+  functions:
+  - 1
+  multiplication: 0
+  rendering: 1
   renderType: 1
-  terrainScale: 1
-  fixedToGrid: 0
-  terrainDimensions: 100
-  maxTerrainHeight: 10
+  terrainScale: 4
+  fixedToGrid: 1
+  terrainDimensions: 1000
+  maxTerrainHeight: 100
+  texture: {fileID: 0}
   heightmapScript: {fileID: 2131147798}
-  texture: {fileID: 15303, guid: 0000000000000000f000000000000000, type: 0}
+  Colors:
+  - {r: 0, g: 0.21568629, b: 0.43921572, a: 0}
+  - {r: 0.7960785, g: 0.7843138, b: 0.5921569, a: 0}
+  - {r: 0.5176471, g: 0.5803922, b: 0.28627452, a: 0}
+  - {r: 0.3921569, g: 0.5411765, b: 0.15686275, a: 0}
+  - {r: 0.3254902, g: 0.44705886, b: 0.1254902, a: 0}
 --- !u!1 &832575517
 GameObject:
   m_ObjectHideFlags: 0

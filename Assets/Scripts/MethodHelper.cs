@@ -1,12 +1,13 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public static class MethodHelper
 {
     public static void SetRandomizerSeed(int seed)
     {
-        if (seed == 0)  
+        if (seed == 0)
         {
-            seed = System.Environment.TickCount;     // random seed
+            seed = System.Environment.TickCount % 100;     // random seed
             Debug.Log($"Seed: {seed}");
         }
 
@@ -17,7 +18,7 @@ public static class MethodHelper
     {
         if (seed == 0)
         {
-            seed = System.Environment.TickCount;     // random seed
+            seed = System.Environment.TickCount % 100;     // random seed
             Debug.Log($"Seed: {seed}");
         }
     }
@@ -58,5 +59,24 @@ public static class MethodHelper
         }
 
         return newArray;
+    }
+
+    public static float[,] MultiplyArrays(List<float[,]> arrays)
+    {
+        int x = arrays[0].GetLength(0), y = arrays[0].GetLength(1);
+        float[,] result = arrays[0];
+
+        for (int a = 1; a < arrays.Count; a++)
+        {
+            for (int i = 0; i < x; i++)
+            {
+                for (int j = 0; j < y; j++)
+                {
+                    result[i, j] *= arrays[a][i, j];
+                }
+            }
+        }
+
+        return result;
     }
 }

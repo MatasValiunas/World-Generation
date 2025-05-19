@@ -9,9 +9,9 @@ public static class Simplex
     const int HASH_OFFSET_2 = 10;
     const float DEFAULT_FALLOFF_POWER = 4;
 
-    public static float[,] Noise(int width, int length, float maxHeight, int seed, float scale, float falloffRadius, int gradientCount)
+    public static float[,] Noise(int width, int length, float maxHeight, int seed, float scale, float falloffRadius, int gradientCount, float variation)
     {
-        Vector2[] gradients = GenerateGradients(gradientCount, seed);
+        Vector2[] gradients = GenerateGradients(gradientCount, seed, variation);
 
         float[,] heightmap = new float[width, length];
         for (int x = 0; x < width; x++)
@@ -101,7 +101,7 @@ public static class Simplex
         return n;
     }
 
-    static Vector2[] GenerateGradients(int count, int seed)
+    static Vector2[] GenerateGradients(int count, int seed, float variation)
     {
         MethodHelper.SetRandomizerSeed(seed);
 
@@ -110,7 +110,8 @@ public static class Simplex
         for (int i = 0; i < count; i++)
         {
             float angle = Random.Range(0f, 2f * Mathf.PI);
-            gradients[i] = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+            float magnitude = Random.Range(1 - variation, 1);//(hashVal % 100) / 25f + 0.5f; // Generate a random magnitude between 0.5 and 4.5
+            gradients[i] = new Vector2(Mathf.Cos(angle) * magnitude, Mathf.Sin(angle) * magnitude);
         }
 
         return gradients;

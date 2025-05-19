@@ -3,7 +3,7 @@ using UnityEngine;
 
 public static class White
 {
-    public static float[,] Noise(int width, int length, int maxHeight, int seed)
+    public static float[,] Noise(int width, int length, float maxHeight, int seed)
     {
         int size = width * length;
         int cycles = Mathf.CeilToInt((float)size / maxHeight);
